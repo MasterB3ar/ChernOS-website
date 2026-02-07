@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#071018" />
+  <title>ChernOS — Nuclear Control-Room Operating System</title>
+  <meta name="description" content="ChernOS is a NixOS-based immersive simulation OS with a Soviet-era control-room UI, reactor/containment simulation, NetOps suite, multitasking, persistence, plugins, and installability." />
+
+  <style>
+    :root{
+      --bg0:#050a10;
+      --bg1:#071018;
+      --card:#0b1622;
+      --card2:#0a131d;
+      --line:rgba(148, 163, 184, 0.18);
+      --text:#d8e2ee;
+      --muted:#9fb2c7;
+      --muted2:#7e94ac;
+      --accent:#38bdf8;
+      --accent2:#22c55e;
+      --warn:#f59e0b;
+      --danger:#ef4444;
+      --shadow: 0 18px 60px rgba(0,0,0,.35);
+      --radius: 18px;
+      --radius2: 14px;
+      --max: 1120px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--text);
+      background:
+        radial-gradient(1200px 600px at 20% -10%, rgba(56,189,248,.14), transparent 60%),
+        radial-gradient(900px 500px at 90% 10%, rgba(34,197,94,.10), transparent 65%),
+        radial-gradient(900px 600px at 50% 120%, rgba(245,158,11,.08), transparent 60%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      overflow-x:hidden;
+    }
+
+    a{color:inherit;text-decoration:none}
+    a:hover{opacity:.92}
+    .wrap{max-width:var(--max); margin:0 auto; padding:28px 18px 70px;}
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px; padding:10px 0 18px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px;
+    }
+    .logo{
+      width:40px; height:40px; border-radius:12px;
+      background: radial-gradient(circle at 35% 30%, rgba(56,189,248,.65), rgba(56,189,248,.08) 55%, rgba(0,0,0,0)),
+                  linear-gradient(135deg, rgba(34,197,94,.25), rgba(0,0,0,0));
+      border:1px solid var(--line);
+      box-shadow: 0 0 0 1px rgba(56,189,248,.10) inset, 0 18px 40px rgba(0,0,0,.35);
+      position:relative;
+    }
+    .logo:after{
+      content:"";
+      position:absolute; inset:10px;
+      border-radius:10px;
+      border:1px dashed rgba(56,189,248,.35);
+      opacity:.9;
+    }
+    .brand h1{font-size:15px; margin:0; letter-spacing:.08em; text-transform:uppercase}
+    .brand p{margin:2px 0 0; color:var(--muted2); font-size:12px; font-family:var(--mono)}
+    .nav{
+      display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:flex-end;
+    }
+    .nav a{
+      font-size:12px; color:var(--muted);
+      padding:8px 10px; border-radius:12px;
+      border:1px solid transparent;
+    }
+    .nav a:hover{
+      border-color:var(--line);
+      background:rgba(148,163,184,.06);
+    }
+
+    .hero{
+      margin-top:10px;
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap:18px;
+      align-items:stretch;
+    }
+    @media (max-width: 920px){
+      .hero{grid-template-columns:1fr; }
+    }
+    .heroCard{
+      border-radius:var(--radius);
+      border:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(11,22,34,.78), rgba(8,16,26,.88));
+      box-shadow: var(--shadow);
+      padding:26px;
+      position:relative;
+      overflow:hidden;
+    }
+    .heroCard:before{
+      content:"";
+      position:absolute;
+      width:520px; height:520px;
+      left:-260px; top:-260px;
+      background: radial-gradient(circle, rgba(56,189,248,.20), transparent 60%);
+      filter: blur(2px);
+      pointer-events:none;
+    }
+    .kicker{
+      display:inline-flex; gap:10px; align-items:center;
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid rgba(56,189,248,.28);
+      background: rgba(56,189,248,.07);
+      color: #bfe9fb;
+      font-size:12px;
+      font-family:var(--mono);
+      letter-spacing:.02em;
+    }
+    .dot{
+      width:8px; height:8px; border-radius:999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 5px rgba(56,189,248,.14);
+    }
+    .heroTitle{
+      margin:14px 0 8px;
+      font-size:44px;
+      line-height:1.03;
+      letter-spacing:-.02em;
+    }
+    @media (max-width: 520px){
+      .heroTitle{font-size:34px;}
+    }
+    .heroSub{
+      margin:0;
+      color:var(--muted);
+      font-size:15px;
+      line-height:1.6;
+      max-width:64ch;
+    }
+    .ctaRow{
+      display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; align-items:center;
+    }
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      gap:10px;
+      padding:11px 14px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background: rgba(148,163,184,.06);
+      color:var(--text);
+      font-size:13px;
+      font-weight:600;
+      letter-spacing:.01em;
+      cursor:pointer;
+      user-select:none;
+      transition: transform .06s ease, background .16s ease, border-color .16s ease;
+    }
+    .btn:hover{background: rgba(148,163,184,.09); border-color: rgba(148,163,184,.24);}
+    .btn:active{transform: translateY(1px);}
+    .btn.primary{
+      border-color: rgba(56,189,248,.40);
+      background: linear-gradient(180deg, rgba(56,189,248,.20), rgba(56,189,248,.08));
+      box-shadow: 0 0 0 1px rgba(56,189,248,.12) inset;
+    }
+    .btn.primary:hover{border-color: rgba(56,189,248,.55);}
+    .btn.ghost{
+      background: transparent;
+    }
+    .btn .tag{
+      font-family:var(--mono);
+      font-size:11px;
+      color: rgba(255,255,255,.78);
+      opacity:.9;
+      border:1px solid rgba(148,163,184,.20);
+      padding:2px 7px;
+      border-radius:999px;
+    }
+
+    .sideCard{
+      border-radius:var(--radius);
+      border:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(10,19,29,.76), rgba(6,12,18,.92));
+      box-shadow: var(--shadow);
+      padding:18px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .panelHeader{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .panelHeader h2{
+      margin:0;
+      font-size:13px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:#cfe2f5;
+    }
+    .pill{
+      font-family:var(--mono);
+      font-size:11px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,.20);
+      background: rgba(148,163,184,.06);
+      color: rgba(255,255,255,.82);
+      white-space:nowrap;
+    }
+    .stats{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap:10px;
+      margin-top:2px;
+    }
+    .stat{
+      border-radius:14px;
+      border:1px solid rgba(148,163,184,.16);
+      background: rgba(148,163,184,.05);
+      padding:12px;
+    }
+    .stat b{
+      display:block;
+      font-size:12px;
+      color:#e6f2ff;
+      margin-bottom:5px;
+    }
+    .stat span{
+      display:block;
+      font-family:var(--mono);
+      font-size:11px;
+      color:var(--muted2);
+      line-height:1.4;
+    }
+    .meter{
+      margin-top:12px;
+      border:1px solid rgba(148,163,184,.18);
+      border-radius:14px;
+      background: rgba(148,163,184,.05);
+      padding:12px;
+      overflow:hidden;
+      position:relative;
+    }
+    .meter .bar{
+      height:10px;
+      border-radius:999px;
+      background: linear-gradient(90deg, rgba(34,197,94,.9), rgba(56,189,248,.95), rgba(245,158,11,.9), rgba(239,68,68,.9));
+      width:100%;
+      opacity:.9;
+      filter:saturate(1.1);
+    }
+    .meter .scan{
+      position:absolute;
+      top:0; bottom:0;
+      width:140px;
+      left:-140px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.10), transparent);
+      animation: scan 2.6s linear infinite;
+      opacity:.8;
+      pointer-events:none;
+    }
+    @keyframes scan{
+      from{ transform: translateX(0); }
+      to{ transform: translateX(520px); }
+    }
+    .meter small{
+      display:block;
+      margin-top:9px;
+      color:var(--muted2);
+      font-size:11px;
+      font-family:var(--mono);
+    }
+
+    section{margin-top:22px;}
+    .sectionTitle{
+      display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap;
+      padding:8px 2px;
+    }
+    .sectionTitle h3{
+      margin:0;
+      font-size:14px;
+      text-transform:uppercase;
+      letter-spacing:.12em;
+      color:#cfe2f5;
+    }
+    .sectionTitle p{
+      margin:0;
+      font-size:12px;
+      color:var(--muted2);
+      font-family:var(--mono);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(12, minmax(0,1fr));
+      gap:12px;
+    }
+    .card{
+      grid-column: span 6;
+      border-radius:var(--radius2);
+      border:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(11,22,34,.66), rgba(8,16,26,.88));
+      box-shadow: 0 16px 44px rgba(0,0,0,.28);
+      padding:16px;
+      overflow:hidden;
+      position:relative;
+    }
+    .card.sm{grid-column: span 4;}
+    .card.lg{grid-column: span 8;}
+    .card.full{grid-column: span 12;}
+    @media (max-width: 980px){
+      .card,.card.sm,.card.lg{grid-column: span 12;}
+    }
+    .card h4{
+      margin:0 0 8px;
+      font-size:14px;
+      letter-spacing:.02em;
+    }
+    .card p{
+      margin:0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.6;
+    }
+    .list{
+      margin:10px 0 0;
+      padding:0;
+      list-style:none;
+      display:grid;
+      gap:8px;
+    }
+    .li{
+      display:flex; gap:10px; align-items:flex-start;
+      padding:10px;
+      border-radius:14px;
+      border:1px solid rgba(148,163,184,.14);
+      background: rgba(148,163,184,.04);
+    }
+    .ic{
+      width:18px; height:18px; border-radius:6px;
+      border:1px solid rgba(148,163,184,.22);
+      background: rgba(56,189,248,.10);
+      box-shadow: 0 0 0 1px rgba(56,189,248,.08) inset;
+      margin-top:1px;
+      flex:0 0 auto;
+    }
+    .li b{display:block; font-size:12px; margin-bottom:2px;}
+    .li span{display:block; font-size:12px; color:var(--muted2); line-height:1.45; font-family:var(--mono);}
+
+    .shots{
+      display:grid;
+      grid-template-columns: repeat(12, minmax(0,1fr));
+      gap:12px;
+    }
+    .shot{
+      grid-column: span 6;
+      border-radius: var(--radius2);
+      border:1px solid rgba(148,163,184,.18);
+      background: rgba(148,163,184,.04);
+      overflow:hidden;
+      position:relative;
+      min-height: 190px;
+      box-shadow: 0 16px 40px rgba(0,0,0,.22);
+    }
+    .shot figure{margin:0;}
+    .shot img{
+      width:100%;
+      height: 210px;
+      object-fit:cover;
+      display:block;
+      filter: saturate(1.05) contrast(1.03);
+    }
+    .shot figcaption{
+      padding:12px 12px 14px;
+      border-top:1px solid rgba(148,163,184,.16);
+      background: linear-gradient(180deg, rgba(8,16,26,.62), rgba(8,16,26,.92));
+    }
+    .shot figcaption b{
+      display:block;
+      font-size:12px;
+      margin-bottom:4px;
+    }
+    .shot figcaption span{
+      display:block;
+      font-size:12px;
+      color:var(--muted2);
+      font-family:var(--mono);
+      line-height:1.45;
+    }
+    @media (max-width: 980px){
+      .shot{grid-column: span 12;}
+      .shot img{height: 220px;}
+    }
+
+    .code{
+      font-family:var(--mono);
+      font-size:12px;
+      line-height:1.5;
+      color:#d6e7fb;
+      background: rgba(2,6,23,.68);
+      border:1px solid rgba(148,163,184,.18);
+      border-radius:14px;
+      padding:12px;
+      overflow:auto;
+    }
+
+    .footer{
+      margin-top:26px;
+      padding-top:18px;
+      border-top:1px solid rgba(148,163,184,.14);
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      color:var(--muted2);
+      font-size:12px;
+      font-family:var(--mono);
+    }
+    .footer a{
+      color:#cfe2f5;
+      border-bottom:1px solid rgba(56,189,248,.25);
+      padding-bottom:1px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <!-- Top Bar -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>ChernOS</h1>
+          <p>v2.0.0 • Soviet-86 Control Room Edition</p>
+        </div>
+      </div>
+      <nav class="nav" aria-label="Primary">
+        <a href="#features">Features</a>
+        <a href="#screenshots">Screenshots</a>
+        <a href="#get-started">Get Started</a>
+        <a href="#docs">Docs</a>
+      </nav>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero" id="top">
+      <div class="heroCard">
+        <div class="kicker"><span class="dot"></span> NixOS-based simulation OS • Kiosk + Desktop</div>
+        <h2 class="heroTitle">The Nuclear Control-Room Operating System</h2>
+        <p class="heroSub">
+          ChernOS is an immersive OS experience built on NixOS, featuring a Soviet-era control-room UI,
+          reactor + containment simulation, a NetOps suite, multitasking, persistence profiles, plugins,
+          and installability via Calamares.
+        </p>
+
+        <div class="ctaRow">
+          <!-- Replace these hrefs with your real links -->
+          <a class="btn primary" href="https://example.com/releases" target="_blank" rel="noreferrer">
+            Download ISO <span class="tag">.iso</span>
+          </a>
+          <a class="btn" href="https://github.com/your-org/chernos" target="_blank" rel="noreferrer">
+            View Source <span class="tag">GitHub</span>
+          </a>
+          <a class="btn ghost" href="#get-started">
+            Build Instructions <span class="tag">nix</span>
+          </a>
+        </div>
+
+        <div style="margin-top:14px; color:var(--muted2); font-size:12px; font-family:var(--mono);">
+          Tip: Run in a VM or on spare hardware — Calamares can wipe disks depending on partition choices.
+        </div>
+      </div>
+
+      <aside class="sideCard" aria-label="Release panel">
+        <div class="panelHeader">
+          <h2>Release Snapshot</h2>
+          <span class="pill">CHERNOS/OPS • READY</span>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <b>Shell Modes</b>
+            <span>Chromium kiosk (default)</span>
+            <span>Electron suite (optional)</span>
+          </div>
+          <div class="stat">
+            <b>Core Systems</b>
+            <span>Reactor + Containment</span>
+            <span>NetOps + Packet bus</span>
+          </div>
+          <div class="stat">
+            <b>OS Experience</b>
+            <span>Internal WM + taskbar</span>
+            <span>Hotkeys + wallpapers</span>
+          </div>
+          <div class="stat">
+            <b>Extensibility</b>
+            <span>Message bus + plugins</span>
+            <span>Persistence v3 profiles</span>
+          </div>
+        </div>
+
+        <div class="meter" aria-label="System activity meter">
+          <div class="bar"></div>
+          <div class="scan"></div>
+          <small>Simulation tick • event bus • audio reactor ambience</small>
+        </div>
+      </aside>
+    </section>
+
+    <!-- Features -->
+    <section id="features">
+      <div class="sectionTitle">
+        <h3>Key Features</h3>
+        <p>v2.0.0 feature set — kiosk OS + simulation + multitasking</p>
+      </div>
+
+      <div class="grid">
+        <div class="card sm">
+          <h4>System Platform</h4>
+          <p>NixOS flake-based reproducible ISO with Wayland/Sway kiosk and fast boot tuning.</p>
+          <ul class="list">
+            <li class="li"><span class="ic"></span><div><b>Reproducible ISO</b><span>flake build → isoImage</span></div></li>
+            <li class="li"><span class="ic"></span><div><b>Wayland + Sway</b><span>kiosk session + hotkeys</span></div></li>
+            <li class="li"><span class="ic"></span><div><b>Fallback rendering</b><span>VM-friendly software path</span></div></li>
+          </ul>
+        </div>
+
+        <div class="card sm">
+          <h4>Soviet-86 UI</h4>
+          <p>Industrial panel framing, warning semantics, and better scanability under pressure.</p>
+          <ul class="list">
+            <li class="li"><span class="ic"></span><div><b>Control-room identity</b><span>consistent visual language</span></div></li>
+            <li class="li"><span class="ic"></span><div><b>Alarms & levers</b><span>interactive controls + sound</span></div></li>
+            <li class="li"><span class="ic"></span><div><b>Night Shift</b><span>warm / dim low-glare mode</span></div></li>
+          </ul>
+        </div>
+
+        <div class="card sm">
+          <h4>Multitasking</h4>
+          <p>Operate multiple modules simultaneously in View, internal WM windows, or Electron desktop windows.</p>
+          <ul class="list">
+            <li class="li"><span class="ic"></span><div><b>Internal WM</b><span>focus / minimize / close</span></div></li>
+            <li class="li"><span class="ic"></span><div><b>Workstation supervisor</b><span>launch + window lists</span></div></li>
+            <li class="li"><span class="ic"></span><div><b>Electron suite</b><span>native multi-window option</span></div></li>
+          </ul>
+        </div>
+
+        <div class="card sm">
+          <h4>Reactor & Containment</h4>
+          <p>Live telemetry, animated rings, safeguards, routing, and aftermath states — all wired to alarms/audio.</p>
+          <ul class="list">
+            <li class="li"><span class="ic"></span><div><b>Temperature rings</b><span>temp / pressure / radiation</span></div></li>
+            <li class="li"><span class="ic"></span><div><b>Secondary containment</b><span>integrity + ΔP + filter load</span></div></li>
+            <li class="li"><span class="ic"></span><div><b>Visualizer</b><span>stylized chamber cross-section</span></div></li>
+          </ul>
+        </div>
+
+        <div class="card sm">
+          <h4>NetOps Suite</h4>
+          <p>Node network simulation with packet routing, throttling, topology UI, and terminal tooling.</p>
+          <ul class="list">
+            <li class="li"><span class="ic"></span><div><b>Nodes</b><span>CORE-1 / FLOW-A / SHIELD-X / DIAG-NET / OPS-TOWER</span></div></li>
+            <li class="li"><span class="ic"></span><div><b>Packet bus</b><span>inspect, route, and simulate traffic</span></div></li>
+            <li class="li"><span class="ic"></span><div><b>Topology UI</b><span>live view of links + status</span></div></li>
+          </ul>
+        </div>
+
+        <div class="card sm">
+          <h4>Persistence & Plugins</h4>
+          <p>Profiles, logs, and extensibility through a message bus + plugin framework.</p>
+          <ul class="list">
+            <li class="li"><span class="ic"></span><div><b>Persistence v3</b><span>profiles, state snapshots, logs</span></div></li>
+            <li class="li"><span class="ic"></span><div><b>Message bus</b><span>fault → alarms → audio → UI</span></div></li>
+            <li class="li"><span class="ic"></span><div><b>Plugin system</b><span>commands + events + UI extensions</span></div></li>
+          </ul>
+        </div>
+
+        <div class="card full">
+          <h4>Installability</h4>
+          <p>
+            ChernOS includes a Calamares installer to deploy from the live ISO to disk. Use with care: disk actions depend on
+            the partitioning mode you choose in the installer UI.
+          </p>
+          <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:12px;">
+            <span class="pill">Hotkey: Ctrl + Alt + I</span>
+            <span class="pill">Hotkey: Super + I</span>
+            <span class="pill">Live ISO → Install → Reboot</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screenshots -->
+    <section id="screenshots">
+      <div class="sectionTitle">
+        <h3>Screenshots</h3>
+        <p>Replace images with your real screenshots</p>
+      </div>
+
+      <div class="shots">
+        <!-- Replace src with your own files (e.g. /assets/dashboard.png) -->
+        <div class="shot">
+          <figure>
+            <img src="assets/screenshot-dashboard.jpg" alt="Main Control Dashboard screenshot placeholder" />
+            <figcaption>
+              <b>Main Control Dashboard</b>
+              <span>Reactor telemetry, alarms, and operator controls in Soviet-86 styling.</span>
+            </figcaption>
+          </figure>
+        </div>
+
+        <div class="shot">
+          <figure>
+            <img src="assets/screenshot-containment.jpg" alt="Containment cross-section visualizer screenshot placeholder" />
+            <figcaption>
+              <b>Containment Visualizer</b>
+              <span>Cross-section view with integrity, ΔP, internal radiation, and mitigation controls.</span>
+            </figcaption>
+          </figure>
+        </div>
+
+        <div class="shot">
+          <figure>
+            <img src="assets/screenshot-netops.jpg" alt="NetOps topology screenshot placeholder" />
+            <figcaption>
+              <b>NetOps Topology</b>
+              <span>Node map + packet routing/throttling with terminal tooling and packet inspection.</span>
+            </figcaption>
+          </figure>
+        </div>
+
+        <div class="shot">
+          <figure>
+            <img src="assets/screenshot-workstation.jpg" alt="Workstation multitasking screenshot placeholder" />
+            <figcaption>
+              <b>Workstation Multitasking</b>
+              <span>Launch apps into View/WM/Electron; manage internal and desktop windows.</span>
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <div style="margin-top:10px; color:var(--muted2); font-size:12px; font-family:var(--mono);">
+        Screenshot tip: export 1920×1080 PNGs and optimize with <code>oxipng</code> or <code>pngquant</code>.
+      </div>
+    </section>
+
+    <!-- Get Started -->
+    <section id="get-started">
+      <div class="sectionTitle">
+        <h3>Get Started</h3>
+        <p>Build and boot in minutes</p>
+      </div>
+
+      <div class="grid">
+        <div class="card lg">
+          <h4>Build the ISO</h4>
+          <p>Requires Nix with flakes enabled.</p>
+          <div class="code" role="region" aria-label="Build command">
+nix build .#iso -L --print-build-logs
+          </div>
+          <p style="margin-top:10px;">
+            The resulting ISO is produced by your flake output. Write it to USB (or boot in a VM).
+          </p>
+        </div>
+
+        <div class="card sm">
+          <h4>Recommended VM Settings</h4>
+          <p>For VirtualBox / similar:</p>
+          <ul class="list">
+            <li class="li"><span class="ic"></span><div><b>VRAM</b><span>128MB+ if possible</span></div></li>
+            <li class="li"><span class="ic"></span><div><b>3D Accel</b><span>On (if stable)</span></div></li>
+            <li class="li"><span class="ic"></span><div><b>Resolution</b><span>1920×1080 for best layout</span></div></li>
+          </ul>
+        </div>
+
+        <div class="card full">
+          <h4>Controls</h4>
+          <p>Common defaults (your build may differ if you changed hotkeys):</p>
+          <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;">
+            <span class="pill">Install (Calamares): Ctrl+Alt+I / Super+I</span>
+            <span class="pill">Electron suite: Ctrl+Alt+E / Super+E</span>
+            <span class="pill">Night Shift: Ctrl+Alt+Shift+N</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Docs -->
+    <section id="docs">
+      <div class="sectionTitle">
+        <h3>Documentation</h3>
+        <p>Replace these links with your repo/docs</p>
+      </div>
+
+      <div class="grid">
+        <div class="card sm">
+          <h4>README</h4>
+          <p>Full feature overview, hotkeys, terminal commands, persistence, plugins, and installer notes.</p>
+          <div class="ctaRow">
+            <a class="btn" href="https://github.com/your-org/chernos#readme" target="_blank" rel="noreferrer">Open README</a>
+          </div>
+        </div>
+
+        <div class="card sm">
+          <h4>Architecture</h4>
+          <p>Layered design (NixOS → Wayland/Sway → shell → UI core → sim engine → bus/plugins).</p>
+          <div class="ctaRow">
+            <a class="btn" href="https://github.com/your-org/chernos/blob/main/docs/ARCHITECTURE.md" target="_blank" rel="noreferrer">Open ARCHITECTURE</a>
+          </div>
+        </div>
+
+        <div class="card sm">
+          <h4>Releases</h4>
+          <p>Download the latest ISO and read release notes.</p>
+          <div class="ctaRow">
+            <a class="btn" href="https://github.com/your-org/chernos/releases" target="_blank" rel="noreferrer">Open Releases</a>
+          </div>
+        </div>
+
+        <div class="card sm">
+          <h4>Issues / Feedback</h4>
+          <p>Report bugs, request features, and track progress.</p>
+          <div class="ctaRow">
+            <a class="btn" href="https://github.com/your-org/chernos/issues" target="_blank" rel="noreferrer">Open Issues</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div>© <span id="year"></span> ChernOS • Built on NixOS • Wayland/Sway • Chromium/Electron • Calamares</div>
+      <div>
+        <a href="#top">Back to top</a>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // Small UX niceties only; page works without JS.
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    // Smooth scroll for internal anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(a=>{
+      a.addEventListener("click", (e)=>{
+        const id = a.getAttribute("href");
+        if (!id || id === "#") return;
+        const el = document.querySelector(id);
+        if (!el) return;
+        e.preventDefault();
+        el.scrollIntoView({behavior:"smooth", block:"start"});
+        history.replaceState(null, "", id);
+      });
+    });
+  </script>
+</body>
+</html>
